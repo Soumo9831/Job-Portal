@@ -1,57 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import gsap from "gsap";
+import axios from "axios";
 
-// Dummy job data
-const dummyJobs = [
-  {
-    id: 1,
-    title: "Frontend Developer",
-    description: "Build modern UIs with React and Tailwind.",
-    requirements: ["React", "Tailwind CSS", "REST APIs"],
-    salary: 75000,
-    location: "Remote",
-    jobType: "full-time",
-    position: "Software Engineer",
-    company: "TechNova Inc.",
-  },
-  {
-    id: 2,
-    title: "Data Analyst Intern",
-    description: "Analyze datasets to extract insights using Python & SQL.",
-    requirements: ["Python", "SQL", "Excel"],
-    salary: 15000,
-    location: "Mumbai",
-    jobType: "internship",
-    position: "Intern",
-    company: "Insight Labs",
-  },
-  {
-    id: 3,
-    title: "Backend Engineer",
-    description: "Develop scalable backend systems using Node.js.",
-    requirements: ["Node.js", "Express", "MongoDB"],
-    salary: 90000,
-    location: "Bangalore",
-    jobType: "full-time",
-    position: "Backend Developer",
-    company: "CodeSmith Ltd.",
-  },
-  {
-    id: 4,
-    title: "Graphic Designer",
-    description: "Design creatives for marketing and UI assets.",
-    requirements: ["Figma", "Illustrator", "Photoshop"],
-    salary: 40000,
-    location: "Delhi",
-    jobType: "contract",
-    position: "Visual Designer",
-    company: "PixelCraft Studios",
-  },
-];
-
-const JobCard = ({ job }) => {
+const JobCard = ({ job, appliedJobs, applyToJob }) => {
   const cardRef = useRef(null);
+  const [isApplying, setIsApplying] = useState(false);
+  const isApplied = appliedJobs.includes(job.id);
 
   useEffect(() => {
     const card = cardRef.current;
@@ -87,6 +42,47 @@ const JobCard = ({ job }) => {
     };
   }, []);
 
+  const handleApply = async () => {
+    setIsApplying(true);
+    try {
+      const TOKEN_KEY = "token";
+      const token = localStorage.getItem(TOKEN_KEY);
+      const role = localStorage.getItem("role");
+      console.log("Token retrieved from localStorage:", token); // Debug: Check token
+      console.log("User role:", role); // Debug: Check role
+      if (!token) {
+        throw new Error("Please log in to apply for this job.");
+      }
+      if (role !== "student") {
+        throw new Error("Only students can apply for jobs.");
+      }
+
+      const response = await axios.post(
+        "http://localhost:8000/api/applications/apply",
+        { jobId: job.id },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true, // Match Login.jsx
+        }
+      );
+
+      console.log("Apply response:", response.data); // Debug: Check response
+      if (response.data.success) {
+        applyToJob(job.id);
+      } else {
+        throw new Error(response.data.error || "Failed to apply");
+      }
+    } catch (error) {
+      console.error("Apply error:", error.response?.data?.error || error.message); // Debug: Log detailed error
+      alert(error.response?.data?.error || error.message || "An error occurred while applying.");
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   return (
     <div
       ref={cardRef}
@@ -95,52 +91,55 @@ const JobCard = ({ job }) => {
                  cursor-pointer shadow-lg overflow-hidden group"
       style={{ perspective: "1000px" }}
     >
-      {/* Glowing border effect */}
       <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#39ff14]/70 
                       transition-all duration-500 rounded-2xl pointer-events-none"></div>
 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-[#39ff14] group-hover:text-[#1b3c34] transition-colors duration-300">
-          {job.title}
+          {job.title || "N/A"}
         </h2>
         <span className="text-sm bg-[#39ff14]/20 text-[#39ff14] font-semibold px-3 py-1 rounded-full capitalize 
                          group-hover:bg-[#39ff14]/40 transition-all duration-300">
-          {job.jobType}
+          {job.jobType || "N/A"}
         </span>
       </div>
 
-      <p className="text-gray-300 mb-2 group-hover:text-white transition-colors duration-300">{job.description}</p>
-      <p className="text-sm text-gray-400">
-        📍 <span className="font-semibold text-[#39ff14]">Location:</span> {job.location}
+      <p className="text-gray-300 mb-2 group-hover:text-white transition-colors duration-300">
+        {job.description || "No description available."}
       </p>
       <p className="text-sm text-gray-400">
-        💰 <span className="font-semibold text-[#39ff14]">Salary:</span> ₹{job.salary.toLocaleString()}
+        📍 <span className="font-semibold text-[#39ff14]">Location:</span> {job.location || "N/A"}
       </p>
       <p className="text-sm text-gray-400">
-        🧑‍💼 <span className="font-semibold text-[#39ff14]">Position:</span> {job.position}
+        💰 <span className="font-semibold text-[#39ff14]">Salary:</span> ₹{(job.salary || 0).toLocaleString()}
+      </p>
+      <p className="text-sm text-gray-400">
+        🧑‍💼 <span className="font-semibold text-[#39ff14]">Position:</span> {job.position || "N/A"}
       </p>
       <p className="text-sm text-gray-400 mb-3">
-        🏢 <span className="font-semibold text-[#39ff14]">Company:</span> {job.company}
+        🏢 <span className="font-semibold text-[#39ff14]">Company:</span> {job.company || "Unknown"}
       </p>
 
       <div className="text-sm text-gray-400 mb-3">
         ✅ <span className="font-semibold text-[#39ff14]">Requirements:</span>
         <ul className="list-disc list-inside ml-4">
-          {job.requirements.map((req, index) => (
+          {(job.requirements || []).map((req, index) => (
             <li key={index} className="group-hover:text-white transition-colors duration-300">
-              {req}
+              {req || "N/A"}
             </li>
           ))}
         </ul>
       </div>
 
       <button
-        className="mt-4 w-full py-2 rounded-lg bg-gradient-to-r from-[#1b3c34] via-[#39ff14] to-[#1b3c34] 
-                   text-black font-bold text-lg shadow-xl transform hover:scale-105 
-                   hover:shadow-[0_0_20px_rgba(57,255,20,0.7)] transition-all duration-300 
-                   ease-in-out animate-pulse ring-2 ring-[#39ff14]/30"
+        onClick={handleApply}
+        disabled={isApplied || isApplying}
+        className={`mt-4 w-full py-2 rounded-lg text-sm font-bold 
+                   ${isApplied ? "bg-[#1a1a1a]/80 text-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-[#1b3c34] via-[#39ff14] to-[#1b3c34] text-black hover:scale-105 hover:shadow-[0_0_20px_rgba(57,255,20,0.7)] animate-pulse ring-2 ring-[#39ff14]/30"}
+                   transition-all duration-300 ease-in-out
+                   ${isApplying ? "opacity-60 cursor-wait" : ""}`}
       >
-        🚀 Apply Now
+        {isApplying ? "Applying..." : isApplied ? "Applied" : "🚀 Apply Now"}
       </button>
     </div>
   );
@@ -151,18 +150,60 @@ const Jobs = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
   const [salaryFilter, setSalaryFilter] = useState("");
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [appliedJobs, setAppliedJobs] = useState(JSON.parse(localStorage.getItem("appliedJobs") || "[]"));
   const canvasRef = useRef(null);
 
-  const uniqueLocations = [...new Set(dummyJobs.map((job) => job.location))];
-  const uniquePositions = [...new Set(dummyJobs.map((job) => job.position))];
+  // Persist appliedJobs to localStorage
+  useEffect(() => {
+    localStorage.setItem("appliedJobs", JSON.stringify(appliedJobs));
+  }, [appliedJobs]);
 
-  const filteredJobs = dummyJobs.filter((job) => {
+  // Fetch jobs from backend
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:8000/api/jobs");
+        const transformedJobs = response.data.jobs.map((job) => ({
+          id: job._id,
+          title: job.title,
+          description: job.description || "N/A",
+          requirements: job.requirements || [],
+          salary: job.salary < 1000 ? job.salary * 100000 : job.salary,
+          location: job.location,
+          jobType: job.jobType,
+          position: job.position,
+          company: job.company?.name || "Unknown",
+        }));
+        setJobs(transformedJobs);
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to load jobs. Please try again later.");
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, []);
+
+  // Apply to job handler
+  const applyToJob = (jobId) => {
+    setAppliedJobs((prev) => [...new Set([...prev, jobId])]); // Prevent duplicates
+  };
+
+  const uniqueLocations = [...new Set(jobs.map((job) => job.location).filter(Boolean))];
+  const uniquePositions = [...new Set(jobs.map((job) => job.position).filter(Boolean))];
+
+  const filteredJobs = jobs.filter((job) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
-      job.title.toLowerCase().includes(query) ||
-      job.description.toLowerCase().includes(query) ||
-      job.position.toLowerCase().includes(query) ||
-      job.company.toLowerCase().includes(query);
+      (job.title || "").toLowerCase().includes(query) ||
+      (job.description || "").toLowerCase().includes(query) ||
+      (job.position || "").toLowerCase().includes(query) ||
+      (job.company || "").toLowerCase().includes(query);
 
     const matchesLocation = locationFilter === "" || job.location === locationFilter;
     const matchesPosition = positionFilter === "" || job.position === positionFilter;
@@ -293,7 +334,7 @@ const Jobs = () => {
           point.x,
           point.y,
           point.size,
-          point.size * 1.5,
+          this.size * 1.5,
           0,
           0,
           Math.PI * 2
@@ -373,18 +414,16 @@ const Jobs = () => {
 
   return (
     <div className="relative min-h-screen px-6 md:px-20 py-10 bg-[#000000] overflow-hidden">
-      {/* Flame Canvas */}
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"
       ></canvas>
 
-      <h1 className="text-4xl font-extrabold text-[#39ff14] mb-6 text-center drop-shadow-[0_0_10px_rgba(57,255,20,0.7)]">
+      <h1 className="text-4xl font-extrabold text-[#39ff14] mb-6 text-center drop-shadow-[0_0_10px_rgba(57,255,20,0.7)] relative z-10">
         🚀 Explore Job Opportunities
       </h1>
 
-      {/* Animation */}
-      <div className="flex justify-center mb-10">
+      <div className="flex justify-center mb-10 relative z-10">
         <div className="w-[200px] md:w-[280px] lg:w-[300px] transform hover:scale-105 transition-transform duration-500">
           <DotLottieReact
             src="https://lottie.host/8a96f0c5-502c-4247-9b1d-b273af275e60/kdpe2W3dMH.lottie"
@@ -399,8 +438,7 @@ const Jobs = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-6 relative z-10">
         <input
           type="text"
           placeholder="🔍 Search for jobs, roles or companies..."
@@ -411,9 +449,7 @@ const Jobs = () => {
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 justify-center mb-10">
-        {/* Location Filter */}
+      <div className="flex flex-wrap gap-4 justify-center mb-10 relative z-10">
         <select
           value={locationFilter}
           onChange={(e) => setLocationFilter(e.target.value)}
@@ -425,7 +461,6 @@ const Jobs = () => {
           ))}
         </select>
 
-        {/* Position Filter */}
         <select
           value={positionFilter}
           onChange={(e) => setPositionFilter(e.target.value)}
@@ -437,28 +472,45 @@ const Jobs = () => {
           ))}
         </select>
 
-        {/* Salary Filter */}
         <select
           value={salaryFilter}
           onChange={(e) => setSalaryFilter(e.target.value)}
           className={dropdownStyles}
         >
           <option value="" className={optionStyles}>💰 All Salaries</option>
-          <option value="<30000" className={optionStyles}>Less than ₹30,000</option>
+          <option leap yearvalue="<30000" className={optionStyles}>Less than ₹30,000</option>
           <option value="30000-60000" className={optionStyles}>₹30,000 - ₹60,000</option>
           <option value=">60000" className={optionStyles}>More than ₹60,000</option>
         </select>
       </div>
 
-      {/* Job Grid */}
-      {filteredJobs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      {loading ? (
+        <div className="text-center text-[#39ff14]/80 text-xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)] relative z-10">
+          <DotLottieReact
+            src="https://lottie.host/7f7b8276-09c8-4f1-a-4ab6-a1b6a7f0c7e9/0u1c2d3e4f5.lottie"
+            loop
+            autoplay
+            style={{ width: 100, height: 100, margin: "0 auto" }}
+          />
+          <p>Loading jobs...</p>
+        </div>
+      ) : error ? (
+        <p className="text-center text-[#ff4444]/80 text-xl drop-shadow-[0_0_10px_rgba(255,68,68,0.5)] relative z-10">
+          {error}
+        </p>
+      ) : filteredJobs.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 relative z-10">
           {filteredJobs.map((job) => (
-            <JobCard key={job.id} job={job} />
+            <JobCard
+              key={job.id}
+              job={job}
+              appliedJobs={appliedJobs}
+              applyToJob={applyToJob}
+            />
           ))}
         </div>
       ) : (
-        <p className="text-center text-[#39ff14]/80 text-xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+        <p className="text-center text-[#39ff14]/80 text-xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)] relative z-10">
           😕 No jobs found matching your search.
         </p>
       )}

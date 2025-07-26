@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import logo from "../assets/job-search.png";
@@ -11,12 +11,25 @@ const navItems = [
 ];
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const navRefs = useRef([]);
   const canvasRef = useRef(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("appliedJobs");
+    setIsLoggedIn(false);
+    navigate("/");
+  };
 
   // 3D Tilt Effect for Nav Items
   useEffect(() => {
     navRefs.current.forEach((nav) => {
+      if (!nav) return; // Skip null refs
       const handleMouseMove = (e) => {
         const rect = nav.getBoundingClientRect();
         const x = e.clientX - rect.left - rect.width / 2;
@@ -64,7 +77,7 @@ const Navbar = () => {
       trail.push({ x, y, opacity: 0.8, size: Math.random() * 4 + 2 });
       if (trail.length > maxTrailLength) {
         trail.shift();
-      }
+      };
     };
 
     const drawTrail = () => {
@@ -168,7 +181,7 @@ const Navbar = () => {
           </span>
         </motion.div>
 
-        {/* Right - Nav Links */}
+        {/* Right - Nav Links + Logout */}
         <motion.div
           className="flex items-center gap-8 text-[#39ff14] font-semibold"
           variants={navContainerVariants}
@@ -198,6 +211,28 @@ const Navbar = () => {
               />
             </motion.div>
           ))}
+          {isLoggedIn && (
+            <motion.div
+              ref={(el) => (navRefs.current[navItems.length] = el)}
+              variants={navItemVariants}
+              className="relative group"
+              whileHover={{ y: -2, scale: 1.05, textShadow: "0 0 10px rgba(57, 255, 20, 0.7)" }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 hover:text-[#1b3c34] transition duration-300 
+                           ring-1 ring-[#39ff14]/20 group-hover:ring-[#39ff14]/50 rounded-md px-2 py-1"
+              >
+                <span>🔒</span> Logout
+              </button>
+              {/* Neon underline on hover */}
+              <span
+                className="absolute left-0 bottom-[-4px] w-0 h-[2px] bg-[#39ff14] transition-all duration-300 
+                           group-hover:w-full group-hover:shadow-[0_0_8px_rgba(57,255,20,0.7)]"
+              />
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </motion.div>

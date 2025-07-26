@@ -1,50 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import gsap from "gsap";
-
-// Dummy company data
-const dummyCompanies = [
-  {
-    id: 1,
-    name: "TechNova Inc.",
-    description: "Leading AI solutions provider for global enterprises.",
-    website: "https://technova.com",
-    location: "Remote",
-    logo: "https://via.placeholder.com/100",
-    userId: "507f1f77bcf86cd799439011",
-    createdAt: new Date("2024-06-01"),
-  },
-  {
-    id: 2,
-    name: "Insight Labs",
-    description: "Data analytics firm specializing in actionable insights.",
-    website: "https://insightlabs.io",
-    location: "Mumbai",
-    logo: "https://via.placeholder.com/100",
-    userId: "507f1f77bcf86cd799439012",
-    createdAt: new Date("2023-09-15"),
-  },
-  {
-    id: 3,
-    name: "CodeSmith Ltd.",
-    description: "Building scalable backend systems for startups.",
-    website: "https://codesmith.dev",
-    location: "Bangalore",
-    logo: "https://via.placeholder.com/100",
-    userId: "507f1f77bcf86cd799439013",
-    createdAt: new Date("2022-03-10"),
-  },
-  {
-    id: 4,
-    name: "PixelCraft Studios",
-    description: "Creative agency for UI/UX and graphic design.",
-    website: "https://pixelcraft.studio",
-    location: "Delhi",
-    logo: "https://via.placeholder.com/100",
-    userId: "507f1f77bcf86cd799439014",
-    createdAt: new Date("2021-12-05"),
-  },
-];
+import axios from "axios";
 
 const CompanyCard = ({ company }) => {
   const cardRef = useRef(null);
@@ -145,11 +102,42 @@ const CompanyCard = ({ company }) => {
 const Browse = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const canvasRef = useRef(null);
 
-  const uniqueLocations = [...new Set(dummyCompanies.map((company) => company.location).filter(Boolean))];
+  // Fetch companies from backend
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:8000/api/company/all");
+        // Transform _id to id for compatibility with CompanyCard
+        const transformedCompanies = response.data.companies.map((company) => ({
+          id: company._id,
+          name: company.name,
+          description: company.description,
+          website: company.website,
+          location: company.location,
+          logo: company.logo,
+          userId: company.userId,
+          createdAt: company.createdAt,
+        }));
+        setCompanies(transformedCompanies);
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to load companies. Please try again later.");
+        setLoading(false);
+      }
+    };
 
-  const filteredCompanies = dummyCompanies.filter((company) => {
+    fetchCompanies();
+  }, []);
+
+  const uniqueLocations = [...new Set(companies.map((company) => company.location).filter(Boolean))];
+
+  const filteredCompanies = companies.filter((company) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       company.name.toLowerCase().includes(query) ||
@@ -370,7 +358,7 @@ const Browse = () => {
 
       {/* Animation */}
       <div className="flex justify-center mb-10">
-        <div className="w-[200px] md:w-[280px] lg:w-[300px] transform hover:scale-105 transition-transform duration-500">
+        <div className="w-[200px] md:w-[280px] lg:w-[300px] transform hover:scale-105 transition-transform duration-500 relative z-10">
           <DotLottieReact
             src="https://lottie.host/cab8b6e1-1eaa-4c4c-9838-0f58ad1cfc05/zZkacQGQXt.lottie"
             loop
@@ -385,7 +373,7 @@ const Browse = () => {
       </div>
 
       {/* Search */}
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-6 relative z-10">
         <input
           type="text"
           placeholder="🔍 Search for companies or descriptions..."
@@ -397,7 +385,7 @@ const Browse = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 justify-center mb-10">
+      <div className="flex flex-wrap gap-4 justify-center mb-10 relative z-10">
         {/* Location Filter */}
         <select
           value={locationFilter}
@@ -411,15 +399,29 @@ const Browse = () => {
         </select>
       </div>
 
-      {/* Company Grid */}
-      {filteredCompanies.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      {/* Loading State */}
+      {loading ? (
+        <div className="text-center text-[#39ff14]/80 text-xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)] relative z-10">
+          <DotLottieReact
+            src="https://lottie.host/7f7b8276-09c8-4f1-a-4ab6-a1b6a7f0c7e9/0u1c2d3e4f5.lottie"
+            loop
+            autoplay
+            style={{ width: 100, height: 100, margin: "0 auto" }}
+          />
+          <p>Loading companies...</p>
+        </div>
+      ) : error ? (
+        <p className="text-center text-[#ff4444]/80 text-xl drop-shadow-[0_0_10px_rgba(255,68,68,0.5)] relative z-10">
+          {error}
+        </p>
+      ) : filteredCompanies.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 relative z-10">
           {filteredCompanies.map((company) => (
             <CompanyCard key={company.id} company={company} />
           ))}
         </div>
       ) : (
-        <p className="text-center text-[#39ff14]/80 text-xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+        <p className="text-center text-[#39ff14]/80 text-xl drop-shadow-[0_0_10px_rgba(57,255,20,0.5)] relative z-10">
           😕 No companies found matching your search.
         </p>
       )}

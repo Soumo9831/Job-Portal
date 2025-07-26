@@ -53,6 +53,17 @@ export const getCompanyByUser = async (req, res) => {
   }
 };
 
+// ✅ NEW FUNCTION: GET ALL COMPANIES
+export const getAllCompanies = async (req, res) => {
+  try {
+    const companies = await Company.find({});
+    res.status(200).json({ success: true, companies });
+  } catch (err) {
+    console.error('Fetch All Companies Error:', err.message);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+};
+
 // UPDATE COMPANY
 export const updateCompany = async (req, res) => {
   try {

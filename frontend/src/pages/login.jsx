@@ -24,16 +24,18 @@ const Login = () => {
         {
           email,
           password,
-          role: userType, // ✅ Send role
+          role: userType,
         },
         {
-          withCredentials: true, // ✅ Allow cookie to be set
+          withCredentials: true,
         }
       );
 
       if (res.data.success) {
-        // Optional: Save token or user info
-        // localStorage.setItem("token", res.data.token);
+        // Store token, role, and userId in localStorage
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("role", res.data.role);
+        localStorage.setItem("userId", res.data.userId);
 
         if (userType === "student") {
           navigate("/home");
